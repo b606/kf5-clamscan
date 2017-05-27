@@ -1,0 +1,32 @@
+[Desktop Entry]
+Type=Service
+X-KDE-Action-Custom=true
+X-KDE-Solid-Predicate=[StorageVolume.ignored == 'false' AND StorageVolume.usage == 'FileSystem']
+Actions=scanwithClam;
+
+[Desktop Action scanwithClam]
+Name=Scan with ClamAV
+Name[de]=Mit ClamAV Scannen
+Name[en]=Scan with ClamAV
+Name[fi]=Tarkista ClamAV:lla
+Name[fr]=Analyser avec ClamAV
+Nama[id]=Cek dengan ClamAV
+Name[it]=Scansiona con ClamAV
+Name[ru]=Сканирование ClamAV
+Name[sv]=Skanna med ClamAV
+Name[tr]=ClamAV ile tara
+Name[uk]=Сканування ClamAV
+Name[es]=Escanear virus con ClamAV
+Exec[de]=~/.kde/share/kde4/services/ServiceMenus/ClamScan/ClamScan.sh de %F
+Exec[en]=~/.kde/share/kde4/services/ServiceMenus/ClamScan/ClamScan.sh en %F
+Exec[fi]=~/.kde/share/kde4/services/ServiceMenus/ClamScan/ClamScan.sh fi %F
+Exec[fr]=~/.kde/share/kde4/services/ServiceMenus/ClamScan/ClamScan.sh fr %F
+Exec[id]=~/.kde/share/kde4/services/ServiceMenus/ClamScan/ClamScan.sh id %F
+Exec[it]=~/.kde/share/kde4/services/ServiceMenus/ClamScan/ClamScan.sh it %F
+Exec[ru]=~/.kde/share/kde4/services/ServiceMenus/ClamScan/ClamScan.sh ru %F
+Exec[sv]=~/.kde/share/kde4/services/ServiceMenus/ClamScan/ClamScan.sh sv %F
+Exec[tr]=~/.kde/share/kde4/services/ServiceMenus/ClamScan/ClamScan.sh tr %F
+Exec[uk]=~/.kde/share/kde4/services/ServiceMenus/ClamScan/ClamScan.sh uk %F
+Exec[es]=~/.kde/share/kde4/services/ServiceMenus/ClamScan/ClamScan.sh es %F
+Exec=~/.kde/share/kde4/services/ServiceMenus/ClamScan/ClamScan.sh en %F
+Icon=security-medium
