@@ -74,8 +74,10 @@ if [ -f /usr/bin/clamscan ]; then
     mkdir $log_dir
   fi
   real_files="$(echo "$files" | cut -c $lang_l-)"
-  complete_amount="$(find -L $files -type f | wc -l)"
-  complete_amount_dir="$(find -L $files -type d | wc -l)"
+#   complete_amount="$(find -L $files -type f | wc -l)"
+#   complete_amount_dir="$(find -L $files -type d | wc -l)"
+  complete_amount="$(find $files -type f | wc -l)"
+  complete_amount_dir="$(find $files -type d | wc -l)"
   
   if  [ $complete_amount = "0" ]; then 
     if  [ $complete_amount_dir = "0" ]; then
@@ -86,7 +88,7 @@ if [ -f /usr/bin/clamscan ]; then
   if  [ $empty != "1" ]; then
     echo "Result:" > "$spath"/ServiceMenus/ClamScan/logs/ClamScan_result_$date.log
     
-    nohup clamscan -r  \
+    nohup clamscan -r --follow-dir-symlinks=0 --max-filesize=4095M --max-scansize=4095M \
     --log="$spath"/ServiceMenus/ClamScan/logs/ClamScan_result_$date.log \
     --stdout $real_files > "$spath"/ServiceMenus/ClamScan/logs/ClamScan_$date.log 2>&1 &
     #&& touch "$spath"/ServiceMenus/ClamScan/logs/ClamScan_done$script_pid &
