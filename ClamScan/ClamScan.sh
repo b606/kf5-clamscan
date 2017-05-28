@@ -91,7 +91,6 @@ if [ -f /usr/bin/clamscan ]; then
     nohup clamscan -r --follow-dir-symlinks=0 --max-filesize=4095M --max-scansize=4095M \
     --log="$spath"/ServiceMenus/ClamScan/logs/ClamScan_result_$date.log \
     --stdout $real_files > "$spath"/ServiceMenus/ClamScan/logs/ClamScan_$date.log 2>&1 &
-    #&& touch "$spath"/ServiceMenus/ClamScan/logs/ClamScan_done$script_pid &
     
     clamscan_pid=${!}
     ps -p $clamscan_pid  > /dev/null
@@ -107,7 +106,6 @@ $scan_sentence $complete_amount ($complete_amount_dir directories)")
   fi
   if  [ "${empty}" != "1"  ]; then
     IFS=" " #Necessary, progressbar wouldn't work without it
-    #checklines="$(expr $current_lines \> $complete_amount)"
     
     #ADDED: Use inotifywait in inotify-tools package to monitor ClamScan/logs/
     # REM: inotifywait on single file would be
@@ -118,7 +116,6 @@ $scan_sentence $complete_amount ($complete_amount_dir directories)")
     inotifywait -m -e modify,close,moved_to,create "$spath"/ServiceMenus/ClamScan/logs/ |
     while read -r directory events filename; do
       if [ $filename = "ClamScan_$date.log" ]; then
-        #if [ $checklines != "1"  ]; then
             #cancelled=$(qdbus $progress org.kde.kdialog.ProgressDialog.wasCancelled) # TODO: this code doesn't work
             if [ "${cancelled}" = "true" ]; then
                 break
@@ -128,10 +125,6 @@ $scan_sentence $complete_amount ($complete_amount_dir directories)")
 $scan_sentence $current_lines/$complete_amount ($complete_amount_dir directories)"
             qdbus $progress Set org.kde.kdialog.ProgressDialog value $(expr $current_lines \* 100 / $complete_amount)
             current_lines="$(cat "$spath"/ServiceMenus/ClamScan/logs/ClamScan_$date.log | wc -l)"
-            #checklines="$(expr $current_lines \> $complete_amount)"
-        #else
-        #  break
-        #fi
       else
         # for debugging : touch ClamScan/logs/ClamScan_abort
         if [ $filename = "ClamScan_abort" ]; then
