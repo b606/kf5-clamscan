@@ -15,6 +15,8 @@ path="$(kf5-config --path services)"
 spath="$(echo ${path%:*})"
 error_sentence="No files selected." #english
 empty="0"
+script_pid=$$
+
 if [ $language = "de" ]; then
   wait="ClamAV scannt, bitte warten."
   not_found="ClamAV ist nicht installiert!"
@@ -64,7 +66,9 @@ else
   not_found="ClamAV is not installed!"
   scan_sentence="Scanning files: "
 fi
+
 log_dir="$spath"ServiceMenus/ClamScan/logs/
+
 if [ -f /usr/bin/clamscan ]; then
   if [ ! -d $log_dir ]; then 
     mkdir $log_dir
@@ -81,7 +85,15 @@ if [ -f /usr/bin/clamscan ]; then
   
   if  [ $empty != "1" ]; then
     echo "Result:" > "$spath"/ServiceMenus/ClamScan/logs/ClamScan_result_$date.log
-    nohup clamscan -r --log="$spath"/ServiceMenus/ClamScan/logs/ClamScan_result_$date.log --stdout $real_files > "$spath"/ServiceMenus/ClamScan/logs/ClamScan_$date.log 2>&1 &
+    
+    nohup clamscan -r  \
+    --log="$spath"/ServiceMenus/ClamScan/logs/ClamScan_result_$date.log \
+    --stdout $real_files > "$spath"/ServiceMenus/ClamScan/logs/ClamScan_$date.log 2>&1 &
+    #&& touch "$spath"/ServiceMenus/ClamScan/logs/ClamScan_done$script_pid &
+    
+    clamscan_pid=${!}
+    ps -p $clamscan_pid  > /dev/null
+    clamscan_isnotrunning=$?
     current_lines="0"
 
     progress=$(kdialog --title "$title" --progressbar "$wait 
@@ -93,28 +105,58 @@ $scan_sentence $complete_amount ($complete_amount_dir directories)")
   fi
   if  [ "${empty}" != "1"  ]; then
     IFS=" " #Necessary, progressbar wouldn't work without it
-    checklines="$(expr $current_lines \> $complete_amount)"
-    while [ $checklines != "1"  ]; do
-      #cancelled=$(qdbus $progress org.kde.kdialog.ProgressDialog.wasCancelled) # TODO: this code doesn't work
-      if [ "${cancelled}" = "true" ]; then
-        break
-      fi
-      # TODO: if cancelled don't do this (or break before it)
-      qdbus $progress org.kde.kdialog.ProgressDialog.setLabelText "$wait 
+    #checklines="$(expr $current_lines \> $complete_amount)"
+    
+    #ADDED: Use inotifywait in inotify-tools package to monitor ClamScan/logs/
+    # REM: inotifywait on single file would be
+    #     inotifywait -q -m -e modify,close_write --format %e "$spath"/ServiceMenus/ClamScan/logs/ClamScan_$date.log |
+    #     while read events; do
+    #       ...
+    #     done
+    inotifywait -m -e modify,close,moved_to,create "$spath"/ServiceMenus/ClamScan/logs/ |
+    while read -r directory events filename; do
+      if [ $filename = "ClamScan_$date.log" ]; then
+        #if [ $checklines != "1"  ]; then
+            #cancelled=$(qdbus $progress org.kde.kdialog.ProgressDialog.wasCancelled) # TODO: this code doesn't work
+            if [ "${cancelled}" = "true" ]; then
+                break
+            fi
+            # TODO: if cancelled don't do this (or break before it)
+            qdbus $progress org.kde.kdialog.ProgressDialog.setLabelText "$wait 
 $scan_sentence $current_lines/$complete_amount ($complete_amount_dir directories)"
-      qdbus $progress Set org.kde.kdialog.ProgressDialog value  $(expr $current_lines \* 100 / $complete_amount)
-      current_lines="$(cat "$spath"/ServiceMenus/ClamScan/logs/ClamScan_$date.log | wc -l)"
-      checklines="$(expr $current_lines \> $complete_amount)"
+            qdbus $progress Set org.kde.kdialog.ProgressDialog value $(expr $current_lines \* 100 / $complete_amount)
+            current_lines="$(cat "$spath"/ServiceMenus/ClamScan/logs/ClamScan_$date.log | wc -l)"
+            #checklines="$(expr $current_lines \> $complete_amount)"
+        #else
+        #  break
+        #fi
+      else
+        # for debugging : touch ClamScan/logs/ClamScan_abort
+        if [ $filename = "ClamScan_abort" ]; then
+            break
+        fi
+      fi
+      # ADDED: test if clamscan_pid still running
+      ps -p $clamscan_pid  > /dev/null
+      clamscan_isnotrunning=$?
+      if [ "$clamscan_isnotrunning" = "1" ]; then break; fi
+      # Reduce load on harddrive and cpu
+      # and give time to clamscan to close
+      # (otherwise, stuck in the last inotify event ?)
+      sleep 1
     done
     
     qdbus $progress org.kde.kdialog.ProgressDialog.setLabelText "Finished" # TODO: don't do that if cancelled
     qdbus $progress org.kde.kdialog.ProgressDialog.close # TODO: don't do that if cancelled
     
+    ps -p $clamscan_pid  > /dev/null
+    clamscan_isnotrunning=$?
+
     if [ -f "$spath"/ServiceMenus/ClamScan/logs/ClamScan_result_$date.log ]; then 
-      if [ $checklines = "1" ]; then
-	kdialog --title "$title" --textbox "$spath"/ServiceMenus/ClamScan/logs/ClamScan_result_$date.log 500 400
-	rm "$spath"/ServiceMenus/ClamScan/logs/ClamScan_$date.log
-      else kill $!
+      if [ $clamscan_isnotrunning -eq 1 ]; then
+        kdialog --title "$title" --textbox "$spath"/ServiceMenus/ClamScan/logs/ClamScan_result_$date.log 500 400
+        rm "$spath"/ServiceMenus/ClamScan/logs/ClamScan_$date.log
+      else kill $clamscan_pid
       fi
     fi
   else
