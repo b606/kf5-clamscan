@@ -99,13 +99,12 @@ if [ -f /usr/bin/clamscan ]; then
 
     progress=$(kdialog --title "$title" --progressbar "$wait 
 $scan_sentence $complete_amount ($complete_amount_dir directories)")
-
-    #qdbus $progress org.kde.kdialog.ProgressDialog.showCancelButton true
   else
     echo "$error_sentence" >> "$spath"/ServiceMenus/ClamScan/logs/ClamScan_result_$date.log
   fi
   if  [ "${empty}" != "1"  ]; then
     IFS=" " #Necessary, progressbar wouldn't work without it
+    qdbus $progress org.kde.kdialog.ProgressDialog.showCancelButton "true"
     
     #ADDED: Use inotifywait in inotify-tools package to monitor ClamScan/logs/
     # REM: inotifywait on single file would be
@@ -115,19 +114,19 @@ $scan_sentence $complete_amount ($complete_amount_dir directories)")
     #     done
     inotifywait -m -e modify,close,moved_to,create "$spath"/ServiceMenus/ClamScan/logs/ |
     while read -r directory events filename; do
-      if [ $filename = "ClamScan_$date.log" ]; then
-            #cancelled=$(qdbus $progress org.kde.kdialog.ProgressDialog.wasCancelled) # TODO: this code doesn't work
+      if [ "$filename" = "ClamScan_$date.log" ]; then
+            cancelled=$(qdbus $progress org.kde.kdialog.ProgressDialog.wasCancelled)
             if [ "${cancelled}" = "true" ]; then
                 break
             fi
-            # TODO: if cancelled don't do this (or break before it)
+            # If cancelled don't do this (or break before it)
             qdbus $progress org.kde.kdialog.ProgressDialog.setLabelText "$wait 
 $scan_sentence $current_lines/$complete_amount ($complete_amount_dir directories)"
             qdbus $progress Set org.kde.kdialog.ProgressDialog value $(expr $current_lines \* 100 / $complete_amount)
             current_lines="$(cat "$spath"/ServiceMenus/ClamScan/logs/ClamScan_$date.log | wc -l)"
       else
         # for debugging : touch ClamScan/logs/ClamScan_abort
-        if [ $filename = "ClamScan_abort" ]; then
+        if [ "$filename" = "ClamScan_abort" ]; then
             break
         fi
       fi
@@ -141,8 +140,10 @@ $scan_sentence $current_lines/$complete_amount ($complete_amount_dir directories
       sleep 1
     done
     
-    qdbus $progress org.kde.kdialog.ProgressDialog.setLabelText "Finished" # TODO: don't do that if cancelled
-    qdbus $progress org.kde.kdialog.ProgressDialog.close # TODO: don't do that if cancelled
+    if [ "${cancelled}" != "true" ]; then
+        qdbus $progress org.kde.kdialog.ProgressDialog.setLabelText "Finished"
+        qdbus $progress org.kde.kdialog.ProgressDialog.close
+    fi
     
     ps -p $clamscan_pid  > /dev/null
     clamscan_isnotrunning=$?
