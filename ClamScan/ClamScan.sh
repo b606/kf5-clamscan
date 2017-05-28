@@ -133,11 +133,11 @@ $scan_sentence $current_lines/$complete_amount ($complete_amount_dir directories
       # ADDED: test if clamscan_pid still running
       ps -p $clamscan_pid  > /dev/null
       clamscan_isnotrunning=$?
-      if [ "$clamscan_isnotrunning" = "1" ]; then break; fi
+      if [ $clamscan_isnotrunning -eq 1 ]; then break; fi
       # Reduce load on harddrive and cpu
       # and give time to clamscan to close
       # (otherwise, stuck in the last inotify event ?)
-      sleep 1
+      sleep 0.25
     done
     
     if [ "${cancelled}" != "true" ]; then
