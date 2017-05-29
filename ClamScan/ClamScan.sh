@@ -87,16 +87,17 @@ if [ -f /usr/bin/clamscan ]; then
     progress=$(kdialog --title "$title" --progressbar "$wait 
 $scan_sentence $complete_amount ($complete_amount_dir directories)")
 
-    #qdbus $progress org.kde.kdialog.ProgressDialog.showCancelButton true
   else
     echo "$error_sentence" >> "$spath"/ServiceMenus/ClamScan/logs/ClamScan_result_$date.log
   fi
   if  [ "${empty}" != "1"  ]; then
     IFS=" " #Necessary, progressbar wouldn't work without it
+    qdbus $progress org.kde.kdialog.ProgressDialog.showCancelButton "true"
     checklines="$(expr $current_lines \> $complete_amount)"
     while [ $checklines != "1"  ]; do
-      #cancelled=$(qdbus $progress org.kde.kdialog.ProgressDialog.wasCancelled) # TODO: this code doesn't work
+      cancelled=$(qdbus $progress org.kde.kdialog.ProgressDialog.wasCancelled)
       if [ "${cancelled}" = "true" ]; then
+        qdbus $progress org.kde.kdialog.ProgressDialog.close
         break
       fi
       # TODO: if cancelled don't do this (or break before it)
@@ -106,9 +107,11 @@ $scan_sentence $current_lines/$complete_amount ($complete_amount_dir directories
       current_lines="$(cat "$spath"/ServiceMenus/ClamScan/logs/ClamScan_$date.log | wc -l)"
       checklines="$(expr $current_lines \> $complete_amount)"
     done
-    
-    qdbus $progress org.kde.kdialog.ProgressDialog.setLabelText "Finished" # TODO: don't do that if cancelled
-    qdbus $progress org.kde.kdialog.ProgressDialog.close # TODO: don't do that if cancelled
+
+    if [ "${cancelled}" != "true" ]; then
+      qdbus $progress org.kde.kdialog.ProgressDialog.setLabelText "Finished"
+      qdbus $progress org.kde.kdialog.ProgressDialog.close
+    fi
     
     if [ -f "$spath"/ServiceMenus/ClamScan/logs/ClamScan_result_$date.log ]; then 
       if [ $checklines = "1" ]; then
