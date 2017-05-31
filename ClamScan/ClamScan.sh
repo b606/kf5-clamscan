@@ -106,6 +106,7 @@ $scan_sentence $current_lines/$complete_amount ($complete_amount_dir directories
       qdbus $progress Set org.kde.kdialog.ProgressDialog value  $(expr $current_lines \* 100 / $complete_amount)
       current_lines="$(cat "$spath"/ServiceMenus/ClamScan/logs/ClamScan_$date.log | wc -l)"
       checklines="$(expr $current_lines \> $complete_amount)"
+      sleep 0.25
     done
 
     if [ "${cancelled}" != "true" ]; then
